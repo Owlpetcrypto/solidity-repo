@@ -1,0 +1,56 @@
+//SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.0;
+
+
+contract LearnPayments {
+
+    //learn nested mapping
+    struct Payment{
+        uint amount;
+        uint timestamps;
+    }
+
+    struct Balance {
+        uint totalBalance;
+        uint numPayments;
+        mapping (uint => Payment) payments;
+    }
+
+    mapping (address => Balance) public balanceReceived;
+
+    function getBalance() external view returns(uint) {
+        return address(this).balance;
+    }
+
+    //when pushing into mapping  [].variable
+    function sendMoney() external payable {
+        //add balance
+        balanceReceived[msg.sender].totalBalance += msg.value;
+
+        //create a variable for struct payment
+        Payment memory payment = Payment(msg.value, block.timestamp);
+        //using numPayments as an index for struct Payment i.e 1 = (msg.value, time), 2 = (msg.value, time)
+        balanceReceived[msg.sender].payments[balanceReceived[msg.sender].numPayments] = payment;
+        //increment number of payments
+        balanceReceived[msg.sender].numPayments++;
+    }
+
+    function withdrawMoney(address payable _to, uint _amount) external {
+        //ensure the total balance is greater or equal to amount
+        require(balanceReceived[msg.sender].totalBalance >= _amount, "Not enough funds");
+        //reduce funds
+        balanceReceived[msg.sender].totalBalance -= _amount;
+        //transfer funds
+        _to.transfer(_amount);
+    }
+
+    function withdrawAllMoney(address payable _to) external {
+        //create a new variable for the total balance
+        uint balanceToSend = balanceReceived[msg.sender].totalBalance;
+        //reduce balance to 0
+        balanceReceived[msg.sender].totalBalance = 0;
+        //transfer funds
+        _to.transfer(balanceToSend);
+    }
+}
